@@ -1,0 +1,15 @@
+# Exclude Python runtime caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Exclude massive local raw data files
+dataset/astram_events.csv
+
+# Exclude compiled model weights / serialized lookup arrays
+models/demand_model.pkl
+
+# Exclude OS-specific metadata files
+.DS_Store
+Thumbs.db
+.vscode/

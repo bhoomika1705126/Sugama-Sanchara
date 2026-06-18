@@ -1,0 +1,15 @@
+{
+    "global_limits": {
+        "max_barricades_per_incident": 15,
+        "max_personnel_per_incident": 8,
+        "critical_saturation_threshold": 0.85
+    },
+    "regional_inventory": {
+        "Peenya": { "personnel": 30, "barricades": 60 },
+        "HSR Layout": { "personnel": 40, "barricades": 80 },
+        "Wilson Garden": { "personnel": 25, "barricades": 50 },
+        "Sadashivanagar": { "personnel": 20, "barricades": 45 },
+        "Jayanagara": { "personnel": 35, "barricades": 70 },
+        "default": { "personnel": 15, "barricades": 30 }
+    }
+}
