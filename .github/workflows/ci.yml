@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies (if any)
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
+      - name: Syntax check (compile all .py files)
+        run: |
+          python - <<'PY'
+import py_compile, glob
+files = glob.glob('**/*.py', recursive=True)
+for f in files:
+    try:
+        py_compile.compile(f, doraise=True)
+    except Exception as e:
+        print('PY ERROR', f, e)
+        raise
+print('All python files compiled successfully')
+PY
