@@ -31,6 +31,7 @@ The platform decouples dense analytical ingestion calculations from real-time op
   |  [ Logistics Node ]     ---> Maps infrastructure distribution (Officers/Barricades)  |
   |                              constrained by local station inventory ceilings.      |
   +-----------------------------------------------------------------------------------+
+<<<<<<< HEAD
 `
 
 ## 📌 Frontend Overview
@@ -138,3 +139,32 @@ set API_URL=https://your-backend-host:8000
 ---
 
 Made with 💜 for the Sugama Sanchara initiative.
+
+---
+
+## 🚀 Backend Deployment
+
+This backend is ready for deployment to any Python web host that supports `uvicorn`.
+
+### Required files
+
+- `requirements.txt` — backend dependencies
+- `Procfile` — web process for hosts such as Railway or Heroku
+
+### Local startup
+
+```bash
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+uvicorn src.api:app --host 0.0.0.0 --port 8000
+```
+
+### Recommended cloud deploy
+
+- Railway: create a new service from this GitHub repo, set `PORT` automatically
+- Render: use the public GitHub repo and set the start command to `uvicorn src.api:app --host 0.0.0.0 --port $PORT`
+
+### Streamlit Cloud frontend
+
+Set the frontend `API_URL` environment variable to the public backend URL after backend deployment.
