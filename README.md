@@ -78,6 +78,8 @@ The frontend defaults to http://localhost:8000. To change it:
 set API_URL=http://your-backend-url:8000
 `
 
+For Streamlit Cloud, set the `API_URL` environment variable in your app settings or secrets panel to the public backend URL.
+
 ### 5. Run the dashboard
 `ash
 streamlit run app.py

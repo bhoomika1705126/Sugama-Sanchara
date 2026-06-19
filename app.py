@@ -184,6 +184,9 @@ if 'dataset' not in st.session_state:
 if 'last_response' not in st.session_state:
     st.session_state.last_response = None
 
+if 'backend_status' not in st.session_state:
+    st.session_state.backend_status = {"online": False, "message": "Not checked"}
+
 if 'selected_station' not in st.session_state:
     st.session_state.selected_station = "Peenya"
 
@@ -197,11 +200,15 @@ if 'execution_history' not in st.session_state:
 @st.cache_data
 def load_astram_dataset():
     try:
-        dataset_path = Path("c:/Users/Keerthana/Downloads/Astram event data_anonymized - Astram event data_anonymizedb40ac87.csv")
+        dataset_path = Path(__file__).resolve().parent / "dataset" / "astram_events.csv"
+        dataset_path = Path(os.getenv('ASTRAM_DATASET_PATH', str(dataset_path)))
         if dataset_path.exists():
-            df = pd.read_csv(dataset_path)
+            df = pd.read_csv(dataset_path, encoding='utf-8', on_bad_lines='skip', low_memory=False)
             df['start_datetime'] = pd.to_datetime(df['start_datetime'], errors='coerce')
+            df['latitude'] = pd.to_numeric(df['latitude'], errors='coerce')
+            df['longitude'] = pd.to_numeric(df['longitude'], errors='coerce')
             return df
+        st.warning(f"Could not find dataset at {dataset_path}")
     except Exception as e:
         st.warning(f"Could not load dataset: {e}")
     return None
@@ -240,9 +247,22 @@ def call_api(endpoint: str, method: str = "GET", payload: Optional[Dict] = None)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.ConnectionError:
-        return {"error": "Could not connect to backend API"}
+        return {"error": "Could not connect to backend API", "detail": f"Make sure the backend is running at {st.session_state.api_url}"}
+    except requests.exceptions.Timeout:
+        return {"error": "API request timed out", "detail": "The backend took too long to respond."}
     except Exception as e:
         return {"error": str(e)}
+
+
+def get_backend_status() -> Dict[str, Any]:
+    status = {"online": False, "message": "Backend not reached"}
+    health = call_api("/")
+    if "error" not in health and health.get("status") == "ONLINE":
+        status["online"] = True
+        status["message"] = health.get("system", "Backend is online")
+    else:
+        status["message"] = health.get("error", health.get("detail", status["message"]))
+    return status
 
 # ============================================================================
 # HEADER SECTION
@@ -274,6 +294,26 @@ st.session_state.dataset = load_astram_dataset()
 with st.sidebar:
     st.markdown("### ⚙️ Analysis Configuration")
     
+    api_url = st.text_input(
+        "Backend URL",
+        value=st.session_state.api_url,
+        help="Set the base URL for the FastAPI backend. Use API_URL in Streamlit Cloud.",
+    )
+    if api_url != st.session_state.api_url:
+        st.session_state.api_url = api_url
+
+    if st.button("🔄 Check backend connection"):
+        st.session_state.backend_status = get_backend_status()
+
+    status_message = st.session_state.backend_status
+    if status_message["online"]:
+        st.success(f"Backend online: {status_message['message']}")
+    else:
+        st.error(f"Backend offline: {status_message['message']}")
+
+    st.markdown("---")
+
+    st.markdown("### Select Analysis Mode")
     analysis_mode = st.radio(
         "Select Analysis Mode",
         ["📊 Dashboard Overview", "🎯 Event Trigger", "📈 Historical Analysis", "🗺️ Geographic Heat Map"],
@@ -287,13 +327,15 @@ with st.sidebar:
         station = st.selectbox(
             "Police Station",
             ["Peenya", "Sadashivanagar", "HSR Layout", "Wilson Garden", "Jayanagara", 
-             "Yelahanka", "HAL Old Airport", "Yeshwanthpura", "Kodigehalli", "Hennuru"]
+             "Yelahanka", "HAL Old Airport", "Yeshwanthpura", "Kodigehalli", "Hennuru"],
+            index=0
         )
         
         event_type = st.selectbox(
             "Event Type",
             ["vehicle_breakdown", "water_logging", "accident", "tree_fall", 
-             "construction", "pot_holes", "congestion", "public_event"]
+             "construction", "pot_holes", "congestion", "public_event"],
+            index=0
         )
         
         event_time = st.time_input("Event Time", value=datetime.now().time())
@@ -499,59 +541,61 @@ elif analysis_mode == "🎯 Event Trigger":
     
     with col1:
         if st.button("🚨 TRIGGER EVENT ANALYSIS", use_container_width=True, type="primary"):
-            
             st.markdown('<div class="section-header">🤖 AI Agent Orchestration Pipeline</div>', unsafe_allow_html=True)
             st.markdown('<div class="section-content">', unsafe_allow_html=True)
             
-            # Agent execution timeline
             progress_bar = st.progress(0)
             status_container = st.empty()
             
-            # Intelligence Agent
             status_container.markdown("""
             <div style="margin: 1rem 0;">
-                <strong>🧠 Intelligence Agent</strong> - Analyzing historical patterns...
+                <strong>🧠 Intelligence Agent</strong> - Analyzing patterns and backend telemetry...
             </div>
             """, unsafe_allow_html=True)
-            progress_bar.progress(20)
-            time.sleep(1)
+            progress_bar.progress(25)
+            time.sleep(0.8)
             
-            # Strategy Agent
+            timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+            payload = {
+                "police_station": station,
+                "timestamp_str": timestamp_str,
+                "environmental_factors": {
+                    "is_raining": is_raining,
+                    "active_waterlogging": is_waterlogging,
+                    "vip_movement": is_vip,
+                }
+            }
+
+            response = call_api("/api/v1/operations/trigger", method="POST", payload=payload)
+            progress_bar.progress(60)
+            
+            if response.get("error"):
+                status_container.markdown(f"<div style=\"margin: 1rem 0; color: #ef4444;\"><strong>⚠️ Backend error:</strong> {response.get('error')}</div>", unsafe_allow_html=True)
+                if response.get("detail"):
+                    st.error(response.get("detail"))
+                st.stop()
+
             status_container.markdown("""
             <div style="margin: 1rem 0;">
-                <strong>🧠 Intelligence Agent ✓</strong> - Historical analysis complete<br>
-                <strong>🗺️ Strategy Agent</strong> - Planning optimal routes...
-            </div>
-            """, unsafe_allow_html=True)
-            progress_bar.progress(50)
-            time.sleep(1)
-            
-            # Logistics Agent
-            status_container.markdown("""
-            <div style="margin: 1rem 0;">
-                <strong>🧠 Intelligence Agent ✓</strong> - Historical analysis complete<br>
+                <strong>🧠 Intelligence Agent ✓</strong> - Backend response received<br>
                 <strong>🗺️ Strategy Agent ✓</strong> - Route optimization complete<br>
-                <strong>🚓 Logistics Agent</strong> - Allocating resources...
+                <strong>🚓 Logistics Agent</strong> - Resource allocation complete
             </div>
             """, unsafe_allow_html=True)
-            progress_bar.progress(75)
-            time.sleep(1)
+            progress_bar.progress(90)
+            time.sleep(0.6)
             
-            # Completion
-            status_container.markdown("""
-            <div style="margin: 1rem 0;">
-                <strong>🧠 Intelligence Agent ✓</strong> - Historical analysis complete<br>
-                <strong>🗺️ Strategy Agent ✓</strong> - Route optimization complete<br>
-                <strong>🚓 Logistics Agent ✓</strong> - Resource allocation complete
-            </div>
-            """, unsafe_allow_html=True)
-            progress_bar.progress(100)
-            
-            st.success("✅ Operation Plan Generated Successfully", icon="✅")
+            st.success("✅ Backend operation completed successfully", icon="✅")
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Results
             st.markdown("---")
+            st.markdown('<div class="section-header">📊 Backend Response Summary</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-content">', unsafe_allow_html=True)
+
+            st.json(response)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('---')
             
             st.markdown('<div class="section-header">📊 Recommended Response Plan</div>', unsafe_allow_html=True)
             st.markdown('<div class="section-content">', unsafe_allow_html=True)
@@ -559,7 +603,7 @@ elif analysis_mode == "🎯 Event Trigger":
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.metric("Traffic Severity", "🔴 CRITICAL", "3.8x multiplier")
+                st.metric("Traffic Severity", get_severity_label(3.5), "3.8x multiplier")
             
             with col2:
                 st.metric("Officers Required", "8", "of 8 max")
