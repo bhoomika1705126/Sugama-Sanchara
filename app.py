@@ -236,7 +236,7 @@ BENGALURU_CENTER = [12.9716, 77.5946]
 # SESSION STATE
 # ============================================================================
 defaults = {
-    'api_url': os.getenv('API_URL', 'http://localhost:8000'),
+    'api_url': os.getenv('API_URL', 'https://sugama-backend.onrender.com'),
     'last_response': None,
     'selected_station': 'Peenya',
     'selected_cause': 'vehicle_breakdown',
