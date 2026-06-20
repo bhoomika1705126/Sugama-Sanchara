@@ -354,8 +354,8 @@ https://sugama-sanchara-smmxktkdmqe9eujhzfnmtw.streamlit.app/
 
 ## 👩‍💻 Team TRIFUSION
 
-**Bhoomika N**
-**Gangaparameshwari D**
+**Bhoomika N\n**
+**Gangaparameshwari D\n**
 **B M Keerthana**
 
 
