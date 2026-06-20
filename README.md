@@ -1,172 +1,368 @@
-# Sugama-Sanchara: Spatiotemporal Multi-Agent Traffic Routing Matrix
+# 🚦 Sugama Sanchara
 
-An enterprise-grade, localized multi-agent orchestration architecture designed to optimize traffic gridlock anomalies across Bengaluru. Powered by real-world historical event streams from the **ASTraM (Advanced Traffic Management System)** dataset, the platform evaluates spatiotemporal congestion patterns and calculates defensive physical asset deployments and routing bypass matrices under strict resource boundary thresholds.
+### Autonomous AI Traffic Command Center for Smart Urban Mobility
+
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
+![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-red)
+![AI](https://img.shields.io/badge/AI-Multi--Agent-orange)
+![Deployment](https://img.shields.io/badge/Deployment-Render%20%7C%20Streamlit-success)
 
 ---
 
-## 🏗️ Core System Architecture
+## 🌟 Overview
 
-The platform decouples dense analytical ingestion calculations from real-time operational routing pipelines. By structuring logic into a low-latency offline training phase and a deterministic multi-agent evaluation grid, the application maintains high performance under heavy system load.
+**Sugama Sanchara** is an AI-powered traffic command center designed to help city authorities proactively manage traffic incidents, congestion, and mobility disruptions.
 
-`	ext
-       [ Raw ASTraM Data Streams ]  ---> ( Drops Malformed Rows / Truncates Strings )
-                  |
-                  v
-       [ Ingestion Processing Engine ]  ---> ( Resolves Varied Flags into Unified Bitmasks )
-                  |
-                  v
-       [ Serialized Data Matrix ]   ---> ( Cached Locally into models/demand_model.pkl )
-                  |
-  +---------------v-------------------------------------------------------------------+
-  | Real-Time Orchestration Grid (src/agents.py)                                      |
-  |                                                                                   |
-  |  [ Intelligence Node ]  ---> Extracts 4-hour temporal shifts & calculates         |
-  |                              historical localized anomaly multipliers.            |
-  |           |                                                                       |
-  |           v                                                                       |
-  |  [ Strategy Node ]      ---> Evaluates adjacent network graphs and filters out    |
-  |                              over-saturated boundary pathways.                    |
-  |           |                                                                       |
-  |           v                                                                       |
-  |  [ Logistics Node ]     ---> Maps infrastructure distribution (Officers/Barricades)  |
-  |                              constrained by local station inventory ceilings.      |
-  +-----------------------------------------------------------------------------------+
-<<<<<<< HEAD
-`
+The platform combines:
 
-## 📌 Frontend Overview
+* 🧠 Multi-Agent AI Coordination
+* 📊 Predictive Traffic Intelligence
+* 🗺️ Dynamic Diversion Planning
+* 🚓 Resource Allocation Optimization
+* 📦 Logistics Impact Assessment
+* 🚦 Smart Decision Support Dashboard
 
-This repository contains the Streamlit frontend for the Sugama Sanchara traffic orchestration platform. It is designed to present a professional operational command center with live backend health, incident inputs, AI agent orchestration, and route diversion visualization for Bengaluru.
+Instead of reacting to congestion after it occurs, Sugama Sanchara predicts disruptions and recommends the most effective response strategy.
 
-## 🎯 Frontend Features
+---
 
-- Real-time system health badges for backend and Flipkart connectivity
-- Incident input panel with station selection, time, and environmental chaos factors
-- AI orchestration visualizer showing Intelligence, Strategy, and Logistics agents
-- KPI dashboard with traffic severity, resource allocation, and breach risk indicators
-- Interactive Bengaluru map with incident marker, diversion routes, and adjacent station impact
-- Flipkart logistics integration tab with delivery-impact telemetry and route recommendations
-- Tactical briefing and executive summary for rapid operational decisions
+## 🚨 Problem Statement
 
-## 📋 Installation & Setup
+Modern cities face increasing traffic challenges due to:
 
-### Prerequisites
-- Python 3.8+
-- Backend API running
-- Internet connection for maps (Folium tile loading)
+* Vehicle breakdowns
+* Road accidents
+* VIP movements
+* Public events and gatherings
+* Construction activities
+* Weather-related disruptions
 
-### 1. Clone the repository
-`ash
+Current traffic management systems are often reactive and fragmented.
+
+Authorities lack:
+
+* Real-time impact estimation
+* Predictive decision support
+* Automated diversion planning
+* Resource optimization
+* Logistics impact visibility
+
+---
+
+## 💡 Solution
+
+Sugama Sanchara acts as an intelligent command center that analyzes incidents and coordinates multiple AI agents to generate an optimized response plan.
+
+The system can:
+
+✅ Predict congestion impact
+
+✅ Generate diversion strategies
+
+✅ Recommend police deployment
+
+✅ Estimate network-wide disruption
+
+✅ Assess logistics and delivery impact
+
+✅ Provide operational briefings in real time
+
+---
+
+## 🏗️ System Architecture
+
+```text
+User Dashboard (Streamlit)
+            │
+            ▼
+      FastAPI Backend
+            │
+            ▼
+   Multi-Agent Orchestrator
+            │
+ ┌──────────┼──────────┐
+ │          │          │
+ ▼          ▼          ▼
+Intelligence Strategy Logistics
+ Agent        Agent      Agent
+ │             │          │
+ └───────► Demand Model ◄─┘
+            │
+            ▼
+     Unified Response Plan
+            │
+            ▼
+      Interactive Dashboard
+```
+
+---
+
+## 🤖 AI Agents
+
+### 🧠 Intelligence Agent
+
+Responsibilities:
+
+* Historical incident analysis
+* Congestion pattern detection
+* Traffic impact estimation
+* Risk assessment
+
+Outputs:
+
+* Congestion severity
+* Predicted demand surge
+* Impact score
+
+---
+
+### 🗺️ Strategy Agent
+
+Responsibilities:
+
+* Diversion route planning
+* Network optimization
+* Bottleneck identification
+
+Outputs:
+
+* Recommended routes
+* Congestion mitigation plans
+
+---
+
+### 🚓 Logistics Agent
+
+Responsibilities:
+
+* Police resource allocation
+* Traffic personnel deployment
+* Incident response coordination
+
+Outputs:
+
+* Deployment recommendations
+* Operational response plans
+
+---
+
+## 📊 Key Features
+
+### 🚦 Incident Simulation
+
+Simulate:
+
+* Vehicle breakdowns
+* Road accidents
+* Public gatherings
+* VIP movements
+* Weather disruptions
+
+---
+
+### 🗺️ Interactive Traffic Map
+
+Visualize:
+
+* Incident locations
+* Diversion routes
+* Risk zones
+* Operational hotspots
+
+---
+
+### 📈 Predictive Analytics
+
+Provides:
+
+* Traffic demand forecasting
+* Congestion prediction
+* Impact scoring
+
+---
+
+### 📦 Logistics Impact Monitoring
+
+Estimates:
+
+* Delivery delays
+* Route disruptions
+* Supply chain impact
+
+---
+
+### 📋 Operational Briefing Generator
+
+Automatically generates:
+
+* Situation summary
+* Recommended actions
+* Resource deployment plans
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+* Streamlit
+* Plotly
+* Folium
+* Streamlit-Folium
+
+### Backend
+
+* FastAPI
+* Uvicorn
+
+### AI & Analytics
+
+* Python
+* Pandas
+* NumPy
+* Scikit-Learn
+
+### Deployment
+
+* Render (Backend)
+* Streamlit Community Cloud (Frontend)
+
+---
+
+## 📂 Project Structure
+
+```text
+Sugama-Sanchara/
+│
+├── app.py
+├── requirements.txt
+├── render.yaml
+│
+├── src/
+│   ├── api.py
+│   ├── agents.py
+│   ├── orchestrator.py
+│   └── utils.py
+│
+├── dataset/
+│   └── astram_events.csv
+│
+├── models/
+│   └── demand_model.pkl
+│
+└── README.md
+```
+
+---
+
+## 🚀 Installation
+
+### Clone Repository
+
+```bash
 git clone https://github.com/bhoomika1705126/Sugama-Sanchara.git
-cd frontend/sugama/frontend/sugama
-`
+cd Sugama-Sanchara
+```
 
-### 2. Create a virtual environment
-`ash
-python -m venv venv
-venv/Scripts/activate
-`
-
-### 3. Install dependencies
-`ash
-pip install -r requirements.txt
-`
-
-### 4. Configure backend URL
-The frontend defaults to http://localhost:8000. To change it:
-
-`powershell
-set API_URL=http://your-backend-url:8000
-`
-
-For Streamlit Cloud, set the `API_URL` environment variable in your app settings or secrets panel to the public backend URL.
-
-### 5. Run the dashboard
-`ash
-streamlit run app.py
-`
-
-Open the app at http://localhost:8501.
-
-## 🔌 API Integration
-
-### Health check
-- GET /
-
-### Incident trigger
-- POST /api/v1/operations/trigger
-
-### Flipkart logistics update
-- GET /api/v1/flipkart/logistics-update
-
-## 🗂️ File Structure
-
-`
-frontend-sugama/
-├── app.py                    # Main Streamlit application
-├── app_old.py                # Legacy frontend variant
-├── requirements.txt          # Python dependencies
-├── README.md                 # This file
-├── .github/                  # CI workflow files
-├── scripts/                  # Helper scripts and syntax checks
-└── .env.example              # Optional environment config template
-`
-
-## 🚀 Push to GitHub & Backend Integration
-
-Use the helper scripts to push the frontend and keep the remote in sync.
-
-Windows:
-`powershell
-.\push_to_github.bat
-`
-
-macOS/Linux:
-`ash
-chmod +x push_to_github.sh
-./push_to_github.sh
-`
-
-To point the app at a deployed backend, set:
-`powershell
-set API_URL=https://your-backend-host:8000
-`
-
-## 📌 Notes
-
-- Prefer a secure routing provider for production instead of the OSRM demo server.
-- Do not store production API keys in source control.
-- API_URL controls the runtime backend endpoint.
-
----
-
-Made with 💜 for the Sugama Sanchara initiative.
-
----
-
-## 🚀 Backend Deployment
-
-This backend is ready for deployment to any Python web host that supports `uvicorn`.
-
-### Required files
-
-- `requirements.txt` — backend dependencies
-- `Procfile` — web process for hosts such as Railway or Heroku
-
-### Local startup
+### Create Virtual Environment
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-uvicorn src.api:app --host 0.0.0.0 --port 8000
 ```
 
-### Recommended cloud deploy
+### Activate Environment
 
-- Railway: create a new service from this GitHub repo, set `PORT` automatically
-- Render: use the public GitHub repo and set the start command to `uvicorn src.api:app --host 0.0.0.0 --port $PORT`
+Windows:
 
-### Streamlit Cloud frontend
+```bash
+venv\Scripts\activate
+```
 
-Set the frontend `API_URL` environment variable to the public backend URL after backend deployment.
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## ▶️ Run Backend
+
+```bash
+uvicorn src.api:app --reload --host 0.0.0.0 --port 8000
+```
+
+Backend:
+
+```text
+http://localhost:8000
+```
+
+Swagger Docs:
+
+```text
+http://localhost:8000/docs
+```
+
+---
+
+## ▶️ Run Frontend
+
+```bash
+streamlit run app.py
+```
+
+Frontend:
+
+```text
+http://localhost:8501
+```
+
+---
+
+## 🌐 Deployment
+
+### Backend
+
+Hosted on Render:
+
+```text
+https://sugama-backend.onrender.com
+```
+
+### Frontend
+
+Hosted on Streamlit Community Cloud.
+```text
+https://sugama-sanchara-smmxktkdmqe9eujhzfnmtw.streamlit.app/
+```
+---
+
+## 🎯 Future Enhancements
+
+* Real-time traffic feeds
+* Google Maps integration
+* Emergency vehicle prioritization
+* Crowd event forecasting
+* Smart signal optimization
+* IoT sensor integration
+* Digital twin traffic simulation
+* LLM-powered command center assistant
+
+---
+
+## 👩‍💻 Team TRIFUSION
+
+**Bhoomika N**
+**Gangaparameshwari D**
+**B M Keerthana**
+
+
+---
+
+## 🏆 Vision
+
+To build a proactive, AI-driven urban mobility ecosystem that helps cities reduce congestion, improve emergency response, and enable smarter transportation decisions.
+
+**"Predict. Coordinate. Optimize. Move Smarter."**
