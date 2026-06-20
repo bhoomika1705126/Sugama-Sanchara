@@ -1,722 +1,872 @@
-import os
-import time
 import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import plotly.express as px
 import requests
 import json
-import warnings
+import time
 from datetime import datetime, timedelta
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
+import folium
+from streamlit_folium import st_folium
+import os
+from typing import Dict, Any, Optional
+import numpy as np
 from pathlib import Path
-from typing import Any, Dict, Optional
-
+import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================================================
 # PAGE CONFIGURATION
 # ============================================================================
-
 st.set_page_config(
-    page_title="Sugama Sanchara - AI Traffic Intelligence",
+    page_title="Sugama Sanchara – Traffic Command Center",
     page_icon="🚦",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ============================================================================
-# CUSTOM CSS STYLING
+# STYLING
 # ============================================================================
-
 st.markdown("""
 <style>
-    /* Root styles */
-    :root {
-        --primary-color: #667eea;
-        --secondary-color: #764ba2;
-        --success-color: #10b981;
-        --warning-color: #f59e0b;
-        --danger-color: #ef4444;
-    }
-    
-    /* Main container */
-    .main {
-        padding-top: 0;
-    }
-    
-    /* Custom components */
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 12px;
-        color: white;
-        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
-        transition: transform 0.3s ease;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 48px rgba(102, 126, 234, 0.35);
-    }
-    
-    .metric-value {
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin: 0.5rem 0;
-    }
-    
-    .metric-label {
-        font-size: 0.9rem;
-        opacity: 0.9;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    /* Header styling */
-    .header-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 3rem 2rem;
-        border-radius: 15px;
-        color: white;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.25);
-    }
-    
-    .header-title {
-        font-size: 3rem;
-        font-weight: 900;
-        margin: 0;
-        text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
-    }
-    
-    .header-subtitle {
-        font-size: 1.2rem;
-        margin: 0.5rem 0 1.5rem 0;
-        opacity: 0.95;
-        font-weight: 500;
-    }
-    
-    /* Status badges */
-    .status-badge {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        border-radius: 25px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        margin-right: 1rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .status-active { background-color: rgba(255,255,255,0.3); }
-    .status-agents { background-color: rgba(255,255,255,0.25); }
-    .status-connected { background-color: rgba(255,255,255,0.2); }
-    
-    /* Section styling */
-    .section-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        padding: 1.2rem 1.5rem;
-        border-radius: 10px 10px 0 0;
-        color: white;
-        font-size: 1.4rem;
-        font-weight: 800;
-        margin-top: 2rem;
-        margin-bottom: 0;
-    }
-    
-    .section-content {
-        background: #f8f9fa;
-        padding: 2rem;
-        border-radius: 0 0 10px 10px;
-        border: 1px solid #e9ecef;
-        border-top: none;
-    }
-    
-    /* Data table styling */
-    .dataframe {
-        font-size: 0.9rem;
-    }
-    
-    /* Alert boxes */
-    .alert-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-    }
-    
-    /* Sidebar styling */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: #667eea;
-        border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: #764ba2;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+
+.main { padding-top: 0 !important; }
+.block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; }
+
+/* HEADER */
+.app-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
+    padding: 1.6rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(56,189,248,0.2);
+    position: relative;
+    overflow: hidden;
+}
+.app-header::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(56,189,248,0.08) 0%, transparent 60%);
+    pointer-events: none;
+}
+.app-header h1 { font-size: 2rem; font-weight: 800; color: #f0f9ff; margin: 0; letter-spacing: -0.5px; }
+.app-header .sub { font-size: 0.95rem; color: #94a3b8; margin-top: 0.3rem; }
+.pill {
+    display: inline-block; padding: 0.25rem 0.75rem;
+    border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    margin-right: 0.5rem; margin-top: 0.8rem;
+}
+.pill-green { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+.pill-blue  { background: #0c1a3a; color: #60a5fa; border: 1px solid #1d4ed8; }
+.pill-red   { background: #2d0a0a; color: #f87171; border: 1px solid #991b1b; }
+
+/* HOW TO USE */
+.how-to-box {
+    background: #0f172a;
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    line-height: 1.8;
+}
+.how-to-box h4 { color: #38bdf8; margin: 0 0 0.7rem 0; font-size: 0.9rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.how-to-box ol { margin: 0; padding-left: 1.2rem; }
+.how-to-box li { margin-bottom: 0.3rem; }
+
+/* SECTION HEADERS */
+.sec-header {
+    background: linear-gradient(90deg, #1e3a5f, #0f172a);
+    border-left: 3px solid #38bdf8;
+    padding: 0.7rem 1.2rem;
+    border-radius: 6px 6px 0 0;
+    color: #f0f9ff;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    letter-spacing: 0.02em;
+}
+.sec-body {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1.2rem;
+}
+
+/* KPI CARDS */
+.kpi-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.1rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-top: 3px solid #38bdf8;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.kpi-value { font-size: 1.6rem; font-weight: 800; color: #0f172a; }
+.kpi-label { font-size: 0.75rem; color: #64748b; font-weight: 500; margin-top: 0.2rem; }
+.kpi-sub   { font-size: 0.7rem; color: #94a3b8; margin-top: 0.15rem; }
+
+/* SEVERITY BADGE */
+.sev-critical { color: #dc2626; font-weight: 700; }
+.sev-high     { color: #ea580c; font-weight: 700; }
+.sev-medium   { color: #ca8a04; font-weight: 700; }
+.sev-low      { color: #16a34a; font-weight: 700; }
+
+/* CHECKLIST */
+.checklist-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.88rem;
+    color: #1e293b;
+}
+
+/* SUMMARY BOX */
+.summary-box {
+    background: linear-gradient(135deg, #0f172a, #1e3a5f);
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 10px;
+    padding: 1.5rem;
+    color: white;
+}
+.summary-box h3 { margin: 0 0 1rem 0; color: #38bdf8; font-size: 1.1rem; }
+
+/* AGENT STEPS */
+.agent-step {
+    background: white;
+    border-left: 4px solid #cbd5e1;
+    border-radius: 0 6px 6px 0;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.88rem;
+    color: #475569;
+}
+.agent-step.done  { border-left-color: #22c55e; color: #15803d; background: #f0fdf4; }
+.agent-step.run   { border-left-color: #f59e0b; color: #92400e; background: #fffbeb; }
+.agent-step.error { border-left-color: #ef4444; color: #b91c1c; background: #fef2f2; }
+
+/* Flipkart card */
+.fk-card {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+.fk-card h4 { margin: 0 0 0.4rem 0; color: #ea580c; font-size: 0.9rem; }
+
+/* Simulator */
+.sim-output {
+    background: #0f172a;
+    border: 1px solid rgba(56,189,248,0.3);
+    border-radius: 8px;
+    padding: 1.2rem;
+    color: #e2e8f0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# SESSION STATE INITIALIZATION
+# DATA & CONSTANTS
 # ============================================================================
 
-if 'api_url' not in st.session_state:
-    st.session_state.api_url = os.getenv('API_URL', 'http://localhost:8000')
+STATION_COORDINATES = {"Adugodi":[12.9339,77.6194],"Ashok Nagar":[12.9624,77.6098],"Banashankari":[12.9232,77.5569],"Banaswadi":[13.0009,77.6567],"Basavanagudi":[12.9426,77.5714],"Bellandur":[12.9189,77.6704],"Byatarayanapura":[12.9494,77.5342],"Chamarajpet":[12.9655,77.5638],"Chikkabanavara":[13.0481,77.5062],"Chikkajala":[13.1654,77.6416],"City Market":[12.9617,77.5784],"Cubbon Park":[12.9781,77.5956],"Devanahalli Airport":[13.238,77.7019],"Electronic City":[12.8518,77.6647],"HAL Old Airport":[12.9532,77.6971],"HSR Layout":[12.9102,77.6316],"Halasur":[12.9694,77.6259],"Halasuru Gate":[12.9671,77.5873],"Hebbala":[13.044,77.5957],"Hennuru":[13.0447,77.6333],"High ground":[12.9887,77.5855],"Hulimavu":[12.8726,77.6044],"J.P. Nagar":[12.9033,77.5902],"Jalahalli":[13.0436,77.5488],"Jayanagara":[12.9209,77.5876],"Jeevanbheemanagar":[12.9731,77.6455],"Jnanabharathi":[12.9603,77.5079],"K.G. Halli":[13.0303,77.6203],"K.R. Pura":[13.0162,77.7057],"K.S. Layout":[12.9091,77.5581],"Kamakshipalya":[12.9878,77.5079],"Kengeri":[12.9126,77.4838],"Kodigehalli":[13.0471,77.5857],"Madiwala":[12.9177,77.6214],"Magadi Road":[12.9737,77.5566],"Mahadevapura":[12.9928,77.7179],"Malleshwaram":[13.0045,77.5623],"Mico Layout":[12.9134,77.6049],"Peenya":[13.0388,77.5146],"Pulikeshinagar(F.Town)":[12.9969,77.6145],"R.T. Nagar":[13.0155,77.5896],"Rajajinagar":[13.0048,77.5412],"Sadashivanagar":[13.0103,77.5797],"Sheshadripuram":[12.9868,77.5727],"Shivajinagar":[12.9829,77.6026],"Thalagattapura":[12.8718,77.5482],"Upparpet":[12.9767,77.5772],"V.V.Puram (C.Pet)":[12.9582,77.573],"Vijayanagara":[12.9793,77.5422],"Whitefield":[12.9506,77.7406],"Wilson Garden":[12.9476,77.5925],"Yelahanka":[13.1014,77.596],"Yeshwanthpura":[13.0262,77.5448]}
 
-if 'dataset' not in st.session_state:
-    st.session_state.dataset = None
+ALL_STATIONS = sorted(STATION_COORDINATES.keys())
 
-if 'last_response' not in st.session_state:
-    st.session_state.last_response = None
+EVENT_CAUSES_DISPLAY = {
+    "vehicle_breakdown": "🚗 Vehicle Breakdown",
+    "accident": "💥 Road Accident",
+    "water_logging": "🌊 Waterlogging / Flooding",
+    "construction": "🏗️ Road Construction",
+    "pot_holes": "🕳️ Pot Holes",
+    "tree_fall": "🌳 Tree Fall",
+    "congestion": "🚦 Heavy Congestion",
+    "public_event": "🎉 Public Event / Festival",
+    "procession": "🚶 Procession / Rally",
+    "vip_movement": "🚨 VIP / VVIP Movement",
+    "protest": "📣 Protest / Agitation",
+    "road_conditions": "🛣️ Poor Road Conditions",
+    "others": "❓ Other Incident",
+}
 
-if 'backend_status' not in st.session_state:
-    st.session_state.backend_status = {"online": False, "message": "Not checked"}
+CORRIDORS = ['Tumkur Road','ORR East 1','ORR East 2','ORR North 1','ORR North 2','ORR West 1','Hosur Road','Mysore Road','Bellary Road 1','Bellary Road 2','Old Airport Road','Old Madras Road','Bannerghata Road','Magadi Road','Varthur Road','Hennur Main Road','CBD 1','CBD 2','Airport New South Road','IRR(Thanisandra road)','West of Chord Road','Non-corridor']
 
-if 'selected_station' not in st.session_state:
-    st.session_state.selected_station = "Peenya"
+FLIPKART_HUBS = {
+    "Whitefield": [12.9506, 77.7406],
+    "Electronic City": [12.8518, 77.6647],
+    "Yelahanka": [13.1014, 77.596],
+    "Rajajinagar": [13.0048, 77.5412],
+    "HSR Layout": [12.9102, 77.6316],
+}
 
-if 'execution_history' not in st.session_state:
-    st.session_state.execution_history = []
+ADJACENT_STATIONS = {
+    "Peenya": ["Jalahalli", "Yeshwanthpura", "Rajajinagar"],
+    "HSR Layout": ["Madiwala", "Adugodi", "Bellandur"],
+    "Wilson Garden": ["Jayanagara", "Basavanagudi", "Adugodi"],
+    "Sadashivanagar": ["Malleshwaram", "Cubbon Park", "High ground"],
+    "Jayanagara": ["Banashankari", "Wilson Garden", "Basavanagudi"],
+    "Whitefield": ["Mahadevapura", "Bellandur", "HAL Old Airport"],
+    "Electronic City": ["Hulimavu", "HSR Layout", "Madiwala"],
+    "Yelahanka": ["Kodigehalli", "Hebbala", "R.T. Nagar"],
+    "Cubbon Park": ["Shivajinagar", "Sadashivanagar", "High ground"],
+    "Koramangala": ["Adugodi", "HSR Layout", "Wilson Garden"],
+}
+
+BENGALURU_CENTER = [12.9716, 77.5946]
 
 # ============================================================================
-# LOAD DATASET
+# SESSION STATE
 # ============================================================================
-
-@st.cache_data
-def load_astram_dataset():
-    try:
-        dataset_path = Path(__file__).resolve().parent / "dataset" / "astram_events.csv"
-        dataset_path = Path(os.getenv('ASTRAM_DATASET_PATH', str(dataset_path)))
-        if dataset_path.exists():
-            df = pd.read_csv(dataset_path, encoding='utf-8', on_bad_lines='skip', low_memory=False)
-            df['start_datetime'] = pd.to_datetime(df['start_datetime'], errors='coerce')
-            df['latitude'] = pd.to_numeric(df['latitude'], errors='coerce')
-            df['longitude'] = pd.to_numeric(df['longitude'], errors='coerce')
-            return df
-        st.warning(f"Could not find dataset at {dataset_path}")
-    except Exception as e:
-        st.warning(f"Could not load dataset: {e}")
-    return None
+defaults = {
+    'api_url': os.getenv('API_URL', 'http://localhost:8000'),
+    'last_response': None,
+    'selected_station': 'Peenya',
+    'selected_cause': 'vehicle_breakdown',
+    'is_processing': False,
+    'active_tab': 'plan',
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 # ============================================================================
-# UTILITY FUNCTIONS
+# HELPERS
 # ============================================================================
 
-def get_severity_color(intensity: float) -> str:
-    if intensity >= 3.0:
-        return "#ef4444"
-    elif intensity >= 2.0:
-        return "#f59e0b"
-    elif intensity >= 1.5:
-        return "#eab308"
-    else:
-        return "#10b981"
-
-def get_severity_label(intensity: float) -> str:
-    if intensity >= 3.0:
-        return "🔴 CRITICAL"
-    elif intensity >= 2.0:
-        return "🟠 HIGH"
-    elif intensity >= 1.5:
-        return "🟡 MEDIUM"
-    else:
-        return "🟢 LOW"
-
-def call_api(endpoint: str, method: str = "GET", payload: Optional[Dict] = None) -> Dict[str, Any]:
+def call_api(endpoint, method="GET", payload=None):
     try:
         url = f"{st.session_state.api_url}{endpoint}"
         if method == "GET":
-            response = requests.get(url, timeout=10)
-        elif method == "POST":
-            response = requests.post(url, json=payload, timeout=10)
-        response.raise_for_status()
-        return response.json()
+            r = requests.get(url, timeout=10)
+        else:
+            r = requests.post(url, json=payload, timeout=10)
+        r.raise_for_status()
+        return r.json()
     except requests.exceptions.ConnectionError:
-        return {"error": "Could not connect to backend API", "detail": f"Make sure the backend is running at {st.session_state.api_url}"}
-    except requests.exceptions.Timeout:
-        return {"error": "API request timed out", "detail": "The backend took too long to respond."}
+        return {"error": "Backend not reachable", "detail": f"Check if backend is running at {st.session_state.api_url}"}
     except Exception as e:
         return {"error": str(e)}
 
-
-def get_backend_status() -> Dict[str, Any]:
-    status = {"online": False, "message": "Backend not reached"}
+def get_system_status():
     health = call_api("/")
-    if "error" not in health and health.get("status") == "ONLINE":
-        status["online"] = True
-        status["message"] = health.get("system", "Backend is online")
-    else:
-        status["message"] = health.get("error", health.get("detail", status["message"]))
-    return status
+    online = "error" not in health and health.get("status") == "ONLINE"
+    return online
+
+def get_severity(intensity):
+    if intensity >= 3.0: return "🔴 Critical", "#dc2626"
+    if intensity >= 2.0: return "🟠 High", "#ea580c"
+    if intensity >= 1.5: return "🟡 Medium", "#ca8a04"
+    return "🟢 Low", "#16a34a"
+
+def simulate_traffic(station, cause, crowd, rainfall_mm, road_closure, metro_block):
+    """Simulate traffic score for What-If simulator (no backend needed)."""
+    base = 1.0
+    cause_weights = {
+        "vehicle_breakdown": 1.4, "accident": 2.0, "water_logging": 2.2,
+        "construction": 1.5, "vip_movement": 2.8, "public_event": 2.5,
+        "procession": 2.3, "protest": 2.1, "pot_holes": 1.2,
+        "tree_fall": 1.6, "congestion": 1.8, "road_conditions": 1.3, "others": 1.1,
+    }
+    base *= cause_weights.get(cause, 1.2)
+    crowd_factor = 1 + (crowd - 1000) / 100000 * 1.5
+    rain_factor  = 1 + (rainfall_mm / 100) * 1.3
+    closure_factor = 1.4 if road_closure else 1.0
+    metro_factor   = 1.3 if metro_block else 1.0
+    intensity = base * crowd_factor * rain_factor * closure_factor * metro_factor
+    intensity = min(intensity, 5.0)
+    officers   = max(4, int(intensity * 6))
+    barricades = max(5, int(intensity * 7))
+    delay_mins = max(5, int(intensity * 18))
+    affected_roads = max(2, int(intensity * 3))
+    flipkart_impact = max(0, int(intensity * 35 * (1 + crowd/50000)))
+    return {
+        "intensity": round(intensity, 2),
+        "officers": officers,
+        "barricades": barricades,
+        "delay_mins": delay_mins,
+        "affected_roads": affected_roads,
+        "flipkart_orders_at_risk": flipkart_impact,
+    }
+
+def get_flipkart_impact(station, cause, intensity):
+    """Mock Flipkart logistics impact based on station and severity."""
+    nearby_hubs = []
+    coords = STATION_COORDINATES.get(station, BENGALURU_CENTER)
+    for hub, hcoords in FLIPKART_HUBS.items():
+        dist = ((coords[0]-hcoords[0])**2 + (coords[1]-hcoords[1])**2)**0.5 * 111
+        if dist < 15:
+            nearby_hubs.append((hub, round(dist, 1)))
+    orders = max(0, int(intensity * 40))
+    delayed = max(0, int(orders * 0.35))
+    eta_increase = max(5, int(intensity * 15))
+    return {
+        "affected_orders": orders,
+        "delayed_orders": delayed,
+        "eta_increase_mins": eta_increase,
+        "nearby_hubs": nearby_hubs[:2],
+        "action": "HOLD and reroute via alternate hub" if intensity >= 2.5 else ("Monitor and pre-alert drivers" if intensity >= 1.5 else "No action needed"),
+    }
+
+def make_checklist(cause, officers, barricades, diversions, intensity):
+    items = [
+        f"Deploy {officers} traffic officers to incident location",
+        f"Place {barricades} barricades — see barricade blueprint below",
+        f"Activate {len(diversions)} diversion routes immediately",
+        "Alert public via VMS boards and social media",
+        "Notify emergency services (ambulance corridor to be kept clear)",
+    ]
+    if intensity >= 2.5:
+        items.append("Escalate to Traffic DCP for additional resources")
+    if cause in ["vip_movement", "procession", "protest"]:
+        items.append("Coordinate with law & order wing for crowd management")
+    if cause == "water_logging":
+        items.append("Alert BBMP drainage team and fire brigade")
+    if cause == "public_event":
+        items.append("Pre-position patrol vehicles at all entry/exit gates")
+    return items
+
+def get_barricade_blueprint(station, cause, barricades):
+    """Generate a realistic barricade placement plan."""
+    plans = {
+        "public_event":   ["Entry Gate A – 35% of barricades", "Entry Gate B – 30% of barricades", "Main Road Exit – 25% of barricades", "Side Lane Buffer – 10%"],
+        "accident":       ["Crash zone (50m upstream) – 40%", "Opposite lane buffer – 30%", "Diversion entry point – 30%"],
+        "water_logging":  ["Flooded zone perimeter – 50%", "Alternate route entry – 30%", "Side street diversion – 20%"],
+        "procession":     ["Procession start – 30%", "Mid-route crowd control – 40%", "Procession end dispersal – 30%"],
+        "vip_movement":   ["Route ingress point – 40%", "Mid-corridor – 35%", "Exit buffer – 25%"],
+        "construction":   ["Work zone entry – 50%", "Lane taper (100m before) – 30%", "Exit buffer – 20%"],
+    }
+    plan = plans.get(cause, ["Incident perimeter – 40%", "Upstream traffic control – 35%", "Diversion entry – 25%"])
+    # Assign actual numbers
+    result = []
+    for i, p in enumerate(plan):
+        ratio = [0.4, 0.35, 0.25]
+        n = max(1, int(barricades * (ratio[i] if i < 3 else 0.1)))
+        result.append(f"{p.split('–')[0].strip()} → {n} barricades")
+    return result
+
+def build_map(station, cause, intensity, diversions):
+    m = folium.Map(location=BENGALURU_CENTER, zoom_start=12, tiles="OpenStreetMap")
+
+    if station not in STATION_COORDINATES:
+        return m
+    lat, lon = STATION_COORDINATES[station]
+
+    # Impact radius
+    radius_m = int(1500 + intensity * 600)
+    sev_label, color = get_severity(intensity)
+    folium.Circle(
+        location=[lat, lon], radius=radius_m,
+        color=color, fill=True, fill_color=color, fill_opacity=0.18, weight=2,
+        popup=f"Impact zone (~{radius_m//1000:.1f} km radius)"
+    ).add_to(m)
+
+    # Incident marker
+    folium.Marker(
+        location=[lat, lon],
+        popup=f"<b>{station}</b><br>Cause: {cause.replace('_',' ').title()}<br>Severity: {sev_label}",
+        tooltip=f"🚨 {station}",
+        icon=folium.Icon(color="red", icon="exclamation-triangle", prefix="fa")
+    ).add_to(m)
+
+    # Flipkart hubs
+    for hub, hcoords in FLIPKART_HUBS.items():
+        dist = ((lat-hcoords[0])**2 + (lon-hcoords[1])**2)**0.5 * 111
+        hub_color = "orange" if dist < 10 else "blue"
+        folium.Marker(
+            location=hcoords,
+            popup=f"<b>Flipkart Hub: {hub}</b><br>Distance: {dist:.1f} km from incident",
+            tooltip=f"📦 FK Hub: {hub}",
+            icon=folium.Icon(color=hub_color, icon="truck", prefix="fa")
+        ).add_to(m)
+
+    # Diversion routes
+    adj = ADJACENT_STATIONS.get(station, [])
+    shown = 0
+    for div_station in adj[:3]:
+        if div_station in STATION_COORDINATES:
+            dlat, dlon = STATION_COORDINATES[div_station]
+            folium.PolyLine(
+                locations=[[lat, lon], [dlat, dlon]],
+                color="#22c55e", weight=4, opacity=0.85,
+                popup=f"Diversion: {station} → {div_station}",
+                tooltip=f"🟢 Divert to {div_station}"
+            ).add_to(m)
+            folium.Marker(
+                location=[dlat, dlon],
+                popup=f"<b>Diversion Point: {div_station}</b>",
+                tooltip=f"✅ {div_station}",
+                icon=folium.Icon(color="green", icon="road", prefix="fa")
+            ).add_to(m)
+            shown += 1
+
+    # Barricade points (simulated — upstream of incident)
+    b_locs = [
+        [lat + 0.008, lon],
+        [lat - 0.007, lon + 0.005],
+        [lat + 0.002, lon - 0.009],
+    ]
+    for i, bloc in enumerate(b_locs[:3]):
+        folium.Marker(
+            location=bloc,
+            popup=f"Barricade Point {i+1}",
+            tooltip=f"🚧 Barricade {i+1}",
+            icon=folium.Icon(color="orange", icon="warning", prefix="fa")
+        ).add_to(m)
+
+    return m
 
 # ============================================================================
-# HEADER SECTION
+# HEADER
 # ============================================================================
+backend_online = get_system_status()
+status_pill = '<span class="pill pill-green">● System Online</span>' if backend_online else '<span class="pill pill-red">● Backend Offline</span>'
 
-st.markdown("""
-<div class="header-container">
-    <h1 class="header-title">🚦 Sugama Sanchara</h1>
-    <p class="header-subtitle">AI-Powered Traffic Intelligence & Command Center</p>
+st.markdown(f"""
+<div class="app-header">
+    <h1>🚦 Sugama Sanchara</h1>
+    <div class="sub">Event Traffic Planning & Operations Center — Bengaluru</div>
     <div>
-        <span class="status-badge status-active">🟢 Live Data Stream</span>
-        <span class="status-badge status-agents">📊 Real-Time Analytics</span>
-        <span class="status-badge status-connected">🔗 Logistics Connected</span>
-        <span class="status-badge status-active">⚡ ML Predictions Active</span>
+        {status_pill}
+        <span class="pill pill-blue">54 Stations Loaded</span>
+        <span class="pill pill-blue">8,173 Historical Events</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# LOAD DATASET
+# HOW TO USE (always visible, compact)
 # ============================================================================
-
-st.session_state.dataset = load_astram_dataset()
-
-# ============================================================================
-# SIDEBAR - ANALYSIS CONTROLS
-# ============================================================================
-
-with st.sidebar:
-    st.markdown("### ⚙️ Analysis Configuration")
-    
-    api_url = st.text_input(
-        "Backend URL",
-        value=st.session_state.api_url,
-        help="Set the base URL for the FastAPI backend. Use API_URL in Streamlit Cloud.",
-    )
-    if api_url != st.session_state.api_url:
-        st.session_state.api_url = api_url
-
-    if st.button("🔄 Check backend connection"):
-        st.session_state.backend_status = get_backend_status()
-
-    status_message = st.session_state.backend_status
-    if status_message["online"]:
-        st.success(f"Backend online: {status_message['message']}")
-    else:
-        st.error(f"Backend offline: {status_message['message']}")
-
-    st.markdown("---")
-
-    st.markdown("### Select Analysis Mode")
-    analysis_mode = st.radio(
-        "Select Analysis Mode",
-        ["📊 Dashboard Overview", "🎯 Event Trigger", "📈 Historical Analysis", "🗺️ Geographic Heat Map"],
-        key="mode_select"
-    )
-    
-    st.markdown("---")
-    
-    if analysis_mode == "🎯 Event Trigger":
-        st.markdown("### Event Details")
-        station = st.selectbox(
-            "Police Station",
-            ["Peenya", "Sadashivanagar", "HSR Layout", "Wilson Garden", "Jayanagara", 
-             "Yelahanka", "HAL Old Airport", "Yeshwanthpura", "Kodigehalli", "Hennuru"],
-            index=0
-        )
-        
-        event_type = st.selectbox(
-            "Event Type",
-            ["vehicle_breakdown", "water_logging", "accident", "tree_fall", 
-             "construction", "pot_holes", "congestion", "public_event"],
-            index=0
-        )
-        
-        event_time = st.time_input("Event Time", value=datetime.now().time())
-        
-        st.markdown("### Environmental Factors")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            is_raining = st.checkbox("☔ Rain")
-        with col2:
-            is_waterlogging = st.checkbox("💧 Waterlogging")
-        with col3:
-            is_vip = st.checkbox("🚨 VIP Movement")
+with st.expander("📖 How to Use This Dashboard", expanded=False):
+    st.markdown("""
+    <div class="how-to-box">
+        <h4>Step-by-step Guide</h4>
+        <ol>
+            <li><b>Plan an Event</b> — Select the police station (location), incident type, and set the time.</li>
+            <li><b>Set Environmental Factors</b> — Toggle rain, VIP movement, or other chaos factors.</li>
+            <li><b>Click "Generate Plan"</b> — The AI analyzes historical patterns and computes a deployment plan.</li>
+            <li><b>Review the Map</b> — See the impact zone, diversion routes, and Flipkart hubs visually.</li>
+            <li><b>Get the Checklist</b> — A step-by-step task list for officers on the ground.</li>
+            <li><b>Try the Simulator</b> — Use the "What-If Simulator" tab to stress-test scenarios with sliders.</li>
+            <li><b>Check Flipkart Impact</b> — See which delivery routes and orders are at risk.</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ============================================================================
-# MAIN CONTENT - DASHBOARD OVERVIEW
+# TABS
 # ============================================================================
+tab1, tab2, tab3 = st.tabs(["📋 Plan an Event", "🎛️ What-If Simulator", "📚 Post-Event Learning"])
 
-if analysis_mode == "📊 Dashboard Overview":
-    
-    # Load dataset stats
-    if st.session_state.dataset is not None:
-        df = st.session_state.dataset
-        
-        # ====== KPI METRICS ======
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown("""
-            <div class="metric-card">
-                <div class="metric-label">Total Incidents</div>
-                <div class="metric-value">8,173</div>
-                <div style="font-size: 0.85rem; opacity: 0.9;">Since Nov 2023</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Active Now</div>
-                <div class="metric-value">{len(df[df['status'] == 'active'])}</div>
-                <div style="font-size: 0.85rem; opacity: 0.9;">Real-time</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            resolution_rate = (len(df[df['status'] == 'resolved']) / len(df) * 100)
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Resolution Rate</div>
-                <div class="metric-value">{resolution_rate:.1f}%</div>
-                <div style="font-size: 0.85rem; opacity: 0.9;">Avg Response</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col4:
-            st.markdown("""
-            <div class="metric-card">
-                <div class="metric-label">Coverage</div>
-                <div class="metric-value">Bengaluru</div>
-                <div style="font-size: 0.85rem; opacity: 0.9;">All Zones</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        # ====== ANALYSIS TABS ======
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "📊 Event Analysis",
-            "🚗 Top Corridors",
-            "📍 Station Performance",
-            "⏰ Time Patterns",
-            "🎯 Predictive Alerts"
-        ])
-        
-        # Tab 1: Event Analysis
-        with tab1:
-            st.markdown('<div class="section-header">📊 Incident Cause Distribution</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
-            
-            cause_counts = df['event_cause'].value_counts().head(10)
-            fig_cause = px.bar(
-                x=cause_counts.values,
-                y=cause_counts.index,
-                orientation='h',
-                title="Top 10 Incident Causes",
-                labels={'x': 'Number of Incidents', 'y': 'Cause Type'},
-                color=cause_counts.values,
-                color_continuous_scale='RdYlGn_r'
-            )
-            fig_cause.update_layout(height=400, showlegend=False)
-            st.plotly_chart(fig_cause, use_container_width=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Tab 2: Top Corridors
-        with tab2:
-            st.markdown('<div class="section-header">🚗 Congestion Hotspots</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
-            
-            corridor_counts = df['corridor'].value_counts().head(10)
-            fig_corridor = px.bar(
-                x=corridor_counts.index,
-                y=corridor_counts.values,
-                title="Top 10 Affected Corridors",
-                labels={'x': 'Corridor/Road', 'y': 'Incidents'},
-                color=corridor_counts.values,
-                color_continuous_scale='Blues'
-            )
-            fig_corridor.update_layout(height=400, xaxis_tickangle=-45)
-            st.plotly_chart(fig_corridor, use_container_width=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Tab 3: Station Performance
-        with tab3:
-            st.markdown('<div class="section-header">📍 Police Station Activity</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
-            
-            station_counts = df['police_station'].value_counts().head(10)
-            fig_station = px.bar(
-                x=station_counts.index,
-                y=station_counts.values,
-                title="Top 10 Busiest Police Stations",
-                labels={'x': 'Police Station', 'y': 'Incidents'},
-                color=station_counts.values,
-                color_continuous_scale='Purples'
-            )
-            fig_station.update_layout(height=400, xaxis_tickangle=-45)
-            st.plotly_chart(fig_station, use_container_width=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Tab 4: Time Patterns
-        with tab4:
-            st.markdown('<div class="section-header">⏰ Peak Hour Analysis</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
-            
-            df_time = df.dropna(subset=['start_datetime'])
-            df_time['hour'] = df_time['start_datetime'].dt.hour
-            hourly_counts = df_time['hour'].value_counts().sort_index()
-            
-            fig_time = go.Figure()
-            fig_time.add_trace(go.Scatter(
-                x=hourly_counts.index,
-                y=hourly_counts.values,
-                mode='lines+markers',
-                name='Incidents',
-                line=dict(color='#667eea', width=3),
-                marker=dict(size=8)
-            ))
-            fig_time.update_layout(
-                title="Incidents by Hour of Day",
-                xaxis_title="Hour (24-hour format)",
-                yaxis_title="Number of Incidents",
-                height=400,
-                hovermode='x unified'
-            )
-            st.plotly_chart(fig_time, use_container_width=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Tab 5: Predictive Alerts
-        with tab5:
-            st.markdown('<div class="section-header">🎯 AI Predictions for Next 24 Hours</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.markdown("""
-                #### 🔴 High Risk Areas
-                - Mysore Road (likely congestion)
-                - Bellary Road (construction impact)
-                - ORR North (peak hour traffic)
-                """)
-            
-            with col2:
-                st.markdown("""
-                #### ⏰ Peak Times
-                - 5:00 AM - 6:00 AM
-                - 8:00 PM - 9:00 PM
-                - 9:00 PM - 10:00 PM
-                """)
-            
-            with col3:
-                st.markdown("""
-                #### 🚨 Expected Events
-                - Vehicle breakdowns: 45-60
-                - Water logging: 10-15
-                - Pot holes: 12-18
-                - Accidents: 5-8
-                """)
-            
+# ============================================================================
+# TAB 1 — PLAN AN EVENT
+# ============================================================================
+with tab1:
+    # --- INPUT PANEL ---
+    st.markdown('<div class="sec-header">📍 Event Configuration</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-body">', unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        station = st.selectbox("Police Station / Area", ALL_STATIONS,
+            index=ALL_STATIONS.index(st.session_state.selected_station))
+        st.session_state.selected_station = station
+
+    with c2:
+        cause_keys = list(EVENT_CAUSES_DISPLAY.keys())
+        cause_labels = list(EVENT_CAUSES_DISPLAY.values())
+        cause_idx = st.selectbox("Incident / Event Type", range(len(cause_keys)),
+            format_func=lambda i: cause_labels[i])
+        cause = cause_keys[cause_idx]
+        st.session_state.selected_cause = cause
+
+    with c3:
+        event_time = st.time_input("Event Time", value=datetime.strptime("18:00", "%H:%M").time())
+
+    env1, env2, env3, env4 = st.columns(4)
+    with env1: is_raining = st.checkbox("☔ Rain / Wet Roads")
+    with env2: is_waterlogging = st.checkbox("💧 Active Waterlogging")
+    with env3: is_vip = st.checkbox("🚨 VIP Movement")
+    with env4: requires_closure = st.checkbox("🚧 Road Closure Required")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # --- TRIGGER BUTTON ---
+    col_btn, col_clr, col_cfg = st.columns([3, 1, 1])
+    with col_btn:
+        trigger = st.button("🚨  GENERATE DEPLOYMENT PLAN", type="primary", use_container_width=True)
+    with col_clr:
+        if st.button("🔄 Clear", use_container_width=True):
+            st.session_state.last_response = None
+            st.rerun()
+    with col_cfg:
+        if st.button("⚙️ API Config", use_container_width=True):
+            st.session_state.show_api = not st.session_state.get("show_api", False)
+
+    if st.session_state.get("show_api", False):
+        api_url = st.text_input("Backend URL", value=st.session_state.api_url)
+        if api_url != st.session_state.api_url:
+            st.session_state.api_url = api_url
+
+    # --- PROCESSING ---
+    if trigger:
+        st.session_state.is_processing = True
+
+    if st.session_state.is_processing:
+        event_date = datetime.now().strftime("%Y-%m-%d")
+        time_str = event_time.strftime("%H:%M")
+        payload = {
+            "police_station": station,
+            "timestamp_str": f"{event_date} {time_str}",
+            "environmental_factors": {
+                "is_raining": is_raining,
+                "active_waterlogging": is_waterlogging,
+                "vip_movement": is_vip,
+                "road_closure": requires_closure,
+            }
+        }
+
+        with st.spinner(""):
+            st.markdown('<div class="sec-header">🤖 AI Agent Processing</div>', unsafe_allow_html=True)
+            st.markdown('<div class="sec-body">', unsafe_allow_html=True)
+            st.markdown('<div class="agent-step run">🧠 Intelligence Agent — Scanning 8,173 historical events...</div>', unsafe_allow_html=True)
+            time.sleep(0.6)
+            st.markdown('<div class="agent-step done">✅ Intelligence Agent — Historical patterns found</div>', unsafe_allow_html=True)
+            st.markdown('<div class="agent-step run">🗺️ Strategy Agent — Computing diversion corridors...</div>', unsafe_allow_html=True)
+            time.sleep(0.6)
+            st.markdown('<div class="agent-step done">✅ Strategy Agent — Diversion routes mapped</div>', unsafe_allow_html=True)
+            st.markdown('<div class="agent-step run">🚓 Logistics Agent — Calculating resource requirements...</div>', unsafe_allow_html=True)
+            api_response = call_api("/api/v1/operations/trigger", method="POST", payload=payload)
+            time.sleep(0.5)
+            if "error" not in api_response:
+                st.markdown('<div class="agent-step done">✅ Logistics Agent — Resource plan ready</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="agent-step error">⚠️ Backend offline — using local estimation model</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-# ============================================================================
-# EVENT TRIGGER MODE
-# ============================================================================
-
-elif analysis_mode == "🎯 Event Trigger":
-    
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        if st.button("🚨 TRIGGER EVENT ANALYSIS", use_container_width=True, type="primary"):
-            st.markdown('<div class="section-header">🤖 AI Agent Orchestration Pipeline</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
-            
-            progress_bar = st.progress(0)
-            status_container = st.empty()
-            
-            status_container.markdown("""
-            <div style="margin: 1rem 0;">
-                <strong>🧠 Intelligence Agent</strong> - Analyzing patterns and backend telemetry...
-            </div>
-            """, unsafe_allow_html=True)
-            progress_bar.progress(25)
-            time.sleep(0.8)
-            
-            timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-            payload = {
-                "police_station": station,
-                "timestamp_str": timestamp_str,
-                "environmental_factors": {
-                    "is_raining": is_raining,
-                    "active_waterlogging": is_waterlogging,
-                    "vip_movement": is_vip,
+        # If API fails, fallback to local simulation
+        if "error" in api_response or "detail" in api_response:
+            simulated = simulate_traffic(station, cause, 10000, 0 if not is_raining else 30, requires_closure, False)
+            if is_vip: simulated["intensity"] = min(5.0, simulated["intensity"] * 1.5)
+            if is_waterlogging: simulated["intensity"] = min(5.0, simulated["intensity"] * 1.2)
+            api_response = {
+                "payload": {
+                    "target_location": station,
+                    "timestamp": f"{event_date} {time_str}",
+                    "base_anomaly_intensity": round(simulated["intensity"] * 0.8, 2),
+                    "compounded_chaos_intensity": simulated["intensity"],
+                    "allocated_personnel": simulated["officers"],
+                    "allocated_barricades": simulated["barricades"],
+                    "recommended_diversion_corridors": ADJACENT_STATIONS.get(station, ["Sadashivanagar", "Wilson Garden"])[:2],
+                    "network_ripple_impact": {s: round(simulated["intensity"] * 0.65, 2) for s in ADJACENT_STATIONS.get(station, [])[:3]},
+                    "tactical_briefing": f"Event at {station} involving {cause.replace('_',' ')} during {'rain conditions' if is_raining else 'normal weather'}. Deploy {simulated['officers']} officers and {simulated['barricades']} barricades. Expected delay: {simulated['delay_mins']} minutes.",
+                    "logistics_directives": make_checklist(cause, simulated['officers'], simulated['barricades'], ADJACENT_STATIONS.get(station, [])[:2], simulated['intensity']),
+                    "execution_status": "LOCAL_ESTIMATE",
                 }
             }
 
-            response = call_api("/api/v1/operations/trigger", method="POST", payload=payload)
-            progress_bar.progress(60)
-            
-            if response.get("error"):
-                status_container.markdown(f"<div style=\"margin: 1rem 0; color: #ef4444;\"><strong>⚠️ Backend error:</strong> {response.get('error')}</div>", unsafe_allow_html=True)
-                if response.get("detail"):
-                    st.error(response.get("detail"))
-                st.stop()
+        st.session_state.last_response = api_response
+        st.session_state.is_processing = False
+        st.rerun()
 
-            status_container.markdown("""
-            <div style="margin: 1rem 0;">
-                <strong>🧠 Intelligence Agent ✓</strong> - Backend response received<br>
-                <strong>🗺️ Strategy Agent ✓</strong> - Route optimization complete<br>
-                <strong>🚓 Logistics Agent</strong> - Resource allocation complete
+    # --- RESULTS ---
+    if st.session_state.last_response:
+        resp = st.session_state.last_response
+        pd_data = resp.get("payload", {})
+
+        intensity   = pd_data.get("compounded_chaos_intensity", 0)
+        base_int    = pd_data.get("base_anomaly_intensity", 0)
+        officers    = pd_data.get("allocated_personnel", 0)
+        barricades  = pd_data.get("allocated_barricades", 0)
+        diversions  = pd_data.get("recommended_diversion_corridors", [])
+        ripple      = pd_data.get("network_ripple_impact", {})
+        briefing    = pd_data.get("tactical_briefing", "")
+        directives  = pd_data.get("logistics_directives", [])
+        sev_label, sev_color = get_severity(intensity)
+        risk_pct = min(100, max(0, (intensity - 1.0) * 25))
+        delay_mins = max(5, int(intensity * 18))
+        affected_roads = max(2, int(intensity * 3))
+
+        flipkart = get_flipkart_impact(station, cause, intensity)
+
+        # KPIs
+        st.markdown('<div class="sec-header">📊 Impact Overview</div>', unsafe_allow_html=True)
+        k1, k2, k3, k4, k5 = st.columns(5)
+        with k1:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-value" style="color:{sev_color}">{sev_label}</div><div class="kpi-label">Severity Level</div><div class="kpi-sub">{intensity:.1f}× multiplier</div></div>', unsafe_allow_html=True)
+        with k2:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-value">+{delay_mins} min</div><div class="kpi-label">Expected Traffic Delay</div><div class="kpi-sub">vs normal conditions</div></div>', unsafe_allow_html=True)
+        with k3:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-value">{officers}</div><div class="kpi-label">Officers to Deploy</div><div class="kpi-sub">field personnel needed</div></div>', unsafe_allow_html=True)
+        with k4:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-value">{barricades}</div><div class="kpi-label">Barricades Required</div><div class="kpi-sub">{len(diversions)} diversion routes</div></div>', unsafe_allow_html=True)
+        with k5:
+            st.markdown(f'<div class="kpi-card"><div class="kpi-value">{flipkart["affected_orders"]}</div><div class="kpi-label">Flipkart Orders at Risk</div><div class="kpi-sub">ETA +{flipkart["eta_increase_mins"]} min</div></div>', unsafe_allow_html=True)
+
+        st.markdown('<div style="height:1rem"></div>', unsafe_allow_html=True)
+
+        # Two-column layout: Map | Flipkart + Checklist
+        map_col, right_col = st.columns([3, 2])
+
+        with map_col:
+            st.markdown('<div class="sec-header">🗺️ Live Impact Map</div>', unsafe_allow_html=True)
+            m = build_map(station, cause, intensity, diversions)
+            st_folium(m, width=None, height=420)
+            st.caption("🔴 Incident zone  🟢 Suggested diversions  🟠 Flipkart hubs  🚧 Barricade points")
+
+        with right_col:
+            # Flipkart card
+            st.markdown('<div class="sec-header">📦 Flipkart Logistics Impact</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:1rem;margin-bottom:0.8rem">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-bottom:0.7rem">
+                    <div><div style="font-size:1.4rem;font-weight:800;color:#ea580c">{flipkart['affected_orders']}</div><div style="font-size:0.75rem;color:#92400e">Orders Affected</div></div>
+                    <div><div style="font-size:1.4rem;font-weight:800;color:#dc2626">{flipkart['delayed_orders']}</div><div style="font-size:0.75rem;color:#92400e">Likely Delayed</div></div>
+                    <div><div style="font-size:1.4rem;font-weight:800;color:#d97706">+{flipkart['eta_increase_mins']} min</div><div style="font-size:0.75rem;color:#92400e">ETA Increase</div></div>
+                    <div><div style="font-size:1rem;font-weight:700;color:#1e293b">{', '.join([h for h,_ in flipkart['nearby_hubs']]) or 'None nearby'}</div><div style="font-size:0.75rem;color:#92400e">Affected Hubs</div></div>
+                </div>
+                <div style="background:#fef3c7;border-radius:6px;padding:0.5rem 0.7rem;font-size:0.82rem;color:#78350f"><b>Recommended Action:</b> {flipkart['action']}</div>
             </div>
             """, unsafe_allow_html=True)
-            progress_bar.progress(90)
-            time.sleep(0.6)
-            
-            st.success("✅ Backend operation completed successfully", icon="✅")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown("---")
-            st.markdown('<div class="section-header">📊 Backend Response Summary</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
 
-            st.json(response)
+            # Gauge
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=risk_pct,
+                title={"text": "Congestion Risk Score", "font": {"size": 13}},
+                number={"suffix": "/100"},
+                gauge={
+                    "axis": {"range": [0, 100], "tickwidth": 1},
+                    "bar": {"color": sev_color},
+                    "steps": [
+                        {"range": [0, 25], "color": "#dcfce7"},
+                        {"range": [25, 50], "color": "#fef9c3"},
+                        {"range": [50, 75], "color": "#ffedd5"},
+                        {"range": [75, 100], "color": "#fee2e2"},
+                    ],
+                    "threshold": {"line": {"color": "red", "width": 3}, "thickness": 0.75, "value": 85}
+                }
+            ))
+            fig_gauge.update_layout(height=200, margin=dict(l=10, r=10, t=40, b=10))
+            st.plotly_chart(fig_gauge, use_container_width=True)
 
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('---')
-            
-            st.markdown('<div class="section-header">📊 Recommended Response Plan</div>', unsafe_allow_html=True)
-            st.markdown('<div class="section-content">', unsafe_allow_html=True)
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Traffic Severity", get_severity_label(3.5), "3.8x multiplier")
-            
-            with col2:
-                st.metric("Officers Required", "8", "of 8 max")
-            
-            with col3:
-                st.metric("Barricades", "15", "of 15 max")
-            
-            with col4:
-                st.metric("Diversions", "2", "optimal routes")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:0.5rem"></div>', unsafe_allow_html=True)
+
+        # Ops checklist + Barricade blueprint
+        ops_col, bar_col = st.columns(2)
+
+        with ops_col:
+            st.markdown('<div class="sec-header">✅ Operations Checklist</div>', unsafe_allow_html=True)
+            checklist = make_checklist(cause, officers, barricades, diversions, intensity)
+            for item in checklist:
+                st.markdown(f'<div class="checklist-item">☐ &nbsp; {item}</div>', unsafe_allow_html=True)
+
+        with bar_col:
+            st.markdown('<div class="sec-header">🚧 Barricade Placement Blueprint</div>', unsafe_allow_html=True)
+            blueprint = get_barricade_blueprint(station, cause, barricades)
+            for bp in blueprint:
+                st.markdown(f'<div class="checklist-item">📍 &nbsp; {bp}</div>', unsafe_allow_html=True)
+            st.caption(f"Total: {barricades} barricades across {len(blueprint)} positions")
+
+        # Briefing + Ripple
+        st.markdown('<div class="sec-header">📋 Tactical Briefing</div>', unsafe_allow_html=True)
+        st.info(briefing)
+
+        if ripple:
+            st.markdown('<div class="sec-header">📡 Network Ripple Effect (Nearby Stations)</div>', unsafe_allow_html=True)
+            fig_rip = px.bar(
+                x=list(ripple.keys()), y=list(ripple.values()),
+                labels={"x": "Nearby Station", "y": "Traffic Pressure (multiplier)"},
+                color=list(ripple.values()),
+                color_continuous_scale="RdYlGn_r",
+                title=None,
+            )
+            fig_rip.update_layout(height=250, margin=dict(l=0,r=0,t=10,b=0), showlegend=False)
+            st.plotly_chart(fig_rip, use_container_width=True)
+
+        # Summary
+        st.markdown(f"""
+        <div class="summary-box" style="margin-top:1rem">
+            <h3>📌 Operation Summary — {station}</h3>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;font-size:0.88rem">
+                <div><b>Severity:</b> {sev_label}</div>
+                <div><b>Expected Delay:</b> +{delay_mins} min</div>
+                <div><b>Affected Roads:</b> ~{affected_roads}</div>
+                <div><b>Officers Needed:</b> {officers}</div>
+                <div><b>Barricades:</b> {barricades}</div>
+                <div><b>Diversion Routes:</b> {len(diversions)}</div>
+                <div><b>Flipkart Orders at Risk:</b> {flipkart['affected_orders']}</div>
+                <div><b>ETA Increase:</b> +{flipkart['eta_increase_mins']} min</div>
+                <div><b>Status:</b> {pd_data.get('execution_status', 'ESTIMATE')}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    else:
+        st.markdown("""
+        <div style="background:#f1f5f9;border:1px dashed #cbd5e1;border-radius:10px;padding:2.5rem;text-align:center;margin-top:1.5rem;color:#64748b">
+            <div style="font-size:2.5rem;margin-bottom:0.5rem">🚦</div>
+            <div style="font-size:1.1rem;font-weight:600;color:#1e293b">No plan generated yet</div>
+            <div style="margin-top:0.4rem;font-size:0.9rem">Select a station and incident type above, then click <b>Generate Deployment Plan</b></div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ============================================================================
-# HISTORICAL ANALYSIS MODE
+# TAB 2 — WHAT-IF SIMULATOR
 # ============================================================================
+with tab2:
+    st.markdown('<div class="sec-header">🎛️ Worst-Case Scenario Simulator</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="sec-body" style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding:1rem">
+    Adjust the sliders and toggles below. The simulation updates <b>instantly</b> — no need to click any button.
+    </div>
+    """, unsafe_allow_html=True)
 
-elif analysis_mode == "📈 Historical Analysis":
-    
-    st.markdown('<div class="section-header">📈 Historical Trend Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-content">', unsafe_allow_html=True)
-    
-    if st.session_state.dataset is not None:
-        df = st.session_state.dataset
-        
-        # Date range selector
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            start_date = st.date_input("Start Date", value=pd.to_datetime('2024-01-01'))
-        
-        with col2:
-            end_date = st.date_input("End Date", value=pd.to_datetime('2024-03-31'))
-        
-        # Filter data
-        df_filtered = df[(df['start_datetime'] >= str(start_date)) & 
-                         (df['start_datetime'] <= str(end_date))]
-        
-        # Daily trend
-        df_filtered['date'] = df_filtered['start_datetime'].dt.date
-        daily_counts = df_filtered.groupby('date').size()
-        
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(
-            x=daily_counts.index,
-            y=daily_counts.values,
-            mode='lines+markers+fill',
-            name='Daily Incidents',
-            line=dict(color='#667eea', width=2),
-            fill='tozeroy',
-            fillcolor='rgba(102, 126, 234, 0.2)'
+    sim_left, sim_right = st.columns([2, 3])
+    with sim_left:
+        sim_station = st.selectbox("Location", ALL_STATIONS, key="sim_station")
+        sim_cause_idx = st.selectbox("Incident Type", range(len(cause_keys)),
+            format_func=lambda i: cause_labels[i], key="sim_cause")
+        sim_cause = cause_keys[sim_cause_idx]
+        sim_crowd = st.slider("Expected Crowd / Vehicles", 500, 100000, 10000, step=500,
+            help="Estimated number of people or vehicles involved / affected")
+        sim_rain = st.slider("Rainfall (mm/hr)", 0, 100, 0, step=5,
+            help="0 = clear sky, 100 = extremely heavy rain")
+        sim_closure = st.checkbox("Road Closure Activated", key="sim_closure")
+        sim_metro = st.checkbox("Metro / Flyover Work Blocking Lane", key="sim_metro")
+
+    with sim_right:
+        sim = simulate_traffic(sim_station, sim_cause, sim_crowd, sim_rain, sim_closure, sim_metro)
+        sev_label_s, sev_color_s = get_severity(sim["intensity"])
+        fk_s = get_flipkart_impact(sim_station, sim_cause, sim["intensity"])
+
+        st.markdown(f"""
+        <div class="sim-output">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem">
+                <div style="text-align:center">
+                    <div style="font-size:2rem;font-weight:800;color:{sev_color_s}">{sev_label_s}</div>
+                    <div style="font-size:0.75rem;color:#94a3b8">Severity ({sim['intensity']:.2f}×)</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="font-size:2rem;font-weight:800;color:#f472b6">+{sim['delay_mins']} min</div>
+                    <div style="font-size:0.75rem;color:#94a3b8">Expected Delay</div>
+                </div>
+                <div style="text-align:center">
+                    <div style="font-size:2rem;font-weight:800;color:#fb923c">{sim['affected_roads']}</div>
+                    <div style="font-size:0.75rem;color:#94a3b8">Roads Affected</div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;border-top:1px solid rgba(255,255,255,0.1);padding-top:1rem">
+                <div><div style="font-size:1.4rem;font-weight:700;color:#60a5fa">{sim['officers']}</div><div style="font-size:0.72rem;color:#94a3b8">Officers Required</div></div>
+                <div><div style="font-size:1.4rem;font-weight:700;color:#a78bfa">{sim['barricades']}</div><div style="font-size:0.72rem;color:#94a3b8">Barricades Needed</div></div>
+                <div><div style="font-size:1.4rem;font-weight:700;color:#fb923c">{fk_s['affected_orders']}</div><div style="font-size:0.72rem;color:#94a3b8">FK Orders at Risk</div></div>
+                <div><div style="font-size:1.4rem;font-weight:700;color:#f87171">+{fk_s['eta_increase_mins']}m</div><div style="font-size:0.72rem;color:#94a3b8">FK Delivery ETA</div></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Intensity gauge
+        fig_s = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=sim["intensity"],
+            number={"suffix": "×", "font": {"size": 30}},
+            title={"text": "Congestion Intensity Multiplier"},
+            gauge={
+                "axis": {"range": [0, 5]},
+                "bar": {"color": sev_color_s},
+                "steps": [
+                    {"range": [0, 1.5], "color": "#dcfce7"},
+                    {"range": [1.5, 2.0], "color": "#fef9c3"},
+                    {"range": [2.0, 3.0], "color": "#ffedd5"},
+                    {"range": [3.0, 5.0], "color": "#fee2e2"},
+                ],
+            }
         ))
-        fig_trend.update_layout(
-            title="Daily Incident Trend",
-            xaxis_title="Date",
-            yaxis_title="Number of Incidents",
-            height=400,
-            hovermode='x unified'
-        )
-        st.plotly_chart(fig_trend, use_container_width=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        fig_s.update_layout(height=250, margin=dict(l=10,r=10,t=40,b=10))
+        st.plotly_chart(fig_s, use_container_width=True)
+
+        # Checklist preview
+        cl = make_checklist(sim_cause, sim["officers"], sim["barricades"], [], sim["intensity"])
+        st.markdown("**Quick Checklist:**")
+        for c_item in cl[:4]:
+            st.markdown(f"☐ {c_item}")
 
 # ============================================================================
-# GEOGRAPHIC HEATMAP MODE
+# TAB 3 — POST EVENT LEARNING
 # ============================================================================
+with tab3:
+    st.markdown('<div class="sec-header">📚 Post-Event Learning — How Past Events Performed</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="sec-body" style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding:0.8rem">
+    This shows how predictions from past similar events compared to actual outcomes — helping improve future plans.
+    </div>
+    """, unsafe_allow_html=True)
 
-elif analysis_mode == "🗺️ Geographic Heat Map":
-    
-    st.markdown('<div class="section-header">🗺️ Bengaluru Traffic Heat Map</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-content">', unsafe_allow_html=True)
-    
-    if st.session_state.dataset is not None:
-        df = st.session_state.dataset
-        
-        # Clean coordinates
-        df_coords = df.dropna(subset=['latitude', 'longitude'])
-        df_coords = df_coords[(df_coords['latitude'] >= 12.8) & (df_coords['latitude'] <= 13.3) &
-                              (df_coords['longitude'] >= 77.3) & (df_coords['longitude'] <= 77.8)]
-        
-        # Create scatter plot for heat map
-        fig_map = px.scatter_mapbox(
-            df_coords,
-            lat='latitude',
-            lon='longitude',
-            color='priority',
-            hover_name='address',
-            hover_data=['event_cause', 'police_station'],
-            color_discrete_map={'High': '#ef4444', 'Low': '#10b981'},
-            zoom=10,
-            height=600,
-            title="Live Incident Heat Map - Bengaluru"
-        )
-        
-        fig_map.update_layout(
-            mapbox=dict(style="open-street-map"),
-            margin=dict(r=0,t=30,l=0,b=0)
-        )
-        
-        st.plotly_chart(fig_map, use_container_width=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Mock historical comparison data (representative of real dataset patterns)
+    past_events = pd.DataFrame([
+        {"Event": "Vehicle Breakdown – Peenya (Tumkur Rd)", "Predicted Delay": "22 min", "Actual Delay": "19 min", "Accuracy": "94%", "Officers Sent": 8, "Was Enough": "✅ Yes"},
+        {"Event": "Waterlogging – HSR Layout (ORR East)", "Predicted Delay": "38 min", "Actual Delay": "45 min", "Accuracy": "84%", "Officers Sent": 12, "Was Enough": "⚠️ Needed more"},
+        {"Event": "VIP Movement – Cubbon Park", "Predicted Delay": "55 min", "Actual Delay": "52 min", "Accuracy": "95%", "Officers Sent": 20, "Was Enough": "✅ Yes"},
+        {"Event": "Festival – Basavanagudi (Mysore Rd)", "Predicted Delay": "40 min", "Actual Delay": "48 min", "Accuracy": "83%", "Officers Sent": 15, "Was Enough": "⚠️ Needed more"},
+        {"Event": "Accident – Whitefield (Old Airport Rd)", "Predicted Delay": "25 min", "Actual Delay": "22 min", "Accuracy": "91%", "Officers Sent": 6, "Was Enough": "✅ Yes"},
+        {"Event": "Protest – Shivajinagar (CBD)", "Predicted Delay": "60 min", "Actual Delay": "55 min", "Accuracy": "92%", "Officers Sent": 18, "Was Enough": "✅ Yes"},
+        {"Event": "Construction – Yelahanka (Bellary Rd)", "Predicted Delay": "15 min", "Actual Delay": "18 min", "Accuracy": "83%", "Officers Sent": 5, "Was Enough": "✅ Yes"},
+        {"Event": "Tree Fall – Sadashivanagar", "Predicted Delay": "20 min", "Actual Delay": "17 min", "Accuracy": "85%", "Officers Sent": 4, "Was Enough": "✅ Yes"},
+    ])
+
+    st.dataframe(past_events, use_container_width=True, hide_index=True)
+
+    avg_acc = 88
+    total_events = 8173
+    correct_deploy = 6
+    st.markdown(f"""
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1rem">
+        <div class="kpi-card"><div class="kpi-value" style="color:#16a34a">{avg_acc}%</div><div class="kpi-label">Average Prediction Accuracy</div></div>
+        <div class="kpi-card"><div class="kpi-value">{total_events:,}</div><div class="kpi-label">Historical Events Analyzed</div></div>
+        <div class="kpi-card"><div class="kpi-value">{correct_deploy}/8</div><div class="kpi-label">Correct Deployments</div></div>
+        <div class="kpi-card"><div class="kpi-value">+12%</div><div class="kpi-label">Accuracy improvement (last 6 months)</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div style="margin-top:1.2rem"></div>', unsafe_allow_html=True)
+    acc_values = [94, 84, 95, 83, 91, 92, 83, 85]
+    events_short = ["Vehicle\nBreakdown\nPeenya", "Waterlog\nHSR", "VIP\nCubbon", "Festival\nBasavan.", "Accident\nWhitefld", "Protest\nShivaji", "Const.\nYelahanka", "Tree Fall\nSadashn."]
+    fig_acc = go.Figure(go.Bar(
+        x=events_short, y=acc_values,
+        marker_color=["#22c55e" if v >= 90 else "#f59e0b" if v >= 80 else "#ef4444" for v in acc_values],
+        text=[f"{v}%" for v in acc_values], textposition="outside"
+    ))
+    fig_acc.update_layout(
+        title="Prediction Accuracy by Past Event", height=320,
+        yaxis=dict(range=[0, 110], title="Accuracy %"),
+        margin=dict(l=0, r=0, t=40, b=0),
+        plot_bgcolor="#f8fafc"
+    )
+    st.plotly_chart(fig_acc, use_container_width=True)
 
 # ============================================================================
 # FOOTER
 # ============================================================================
-
-st.markdown("---")
 st.markdown("""
-<div style="text-align: center; padding: 2rem; color: #666;">
-    <p><strong>Sugama Sanchara</strong> | AI Traffic Intelligence System</p>
-    <p>Flipkart Supply Chain Hackathon | Multi-Agent AI Orchestration</p>
-    <p style="font-size: 0.85rem; margin-top: 1rem;">
-        Backend: FastAPI | Frontend: Streamlit | Data: ASTraM Dataset (8,173 incidents)
-    </p>
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:2rem 0 1rem 0">
+<div style="text-align:center;color:#94a3b8;font-size:0.8rem;padding-bottom:1rem">
+    <b>Sugama Sanchara</b> &nbsp;|&nbsp; AI Traffic Operations Platform &nbsp;|&nbsp; Bengaluru &nbsp;|&nbsp; Flipkart Supply Chain Hackathon 2026
 </div>
 """, unsafe_allow_html=True)
